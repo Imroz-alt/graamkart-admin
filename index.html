@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraamKart Survey Responses - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold">📊 Survey Responses Dashboard</h1>
+                    <p class="text-gray-600">Real-time validation data for GraamKart</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-4xl font-bold text-purple-600" id="totalResponses">0</div>
+                    <div class="text-sm text-gray-600">Total Responses</div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600" id="avgAge">-</div>
+                    <div class="text-sm text-gray-600">Top Age Group</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600" id="onlineShoppers">-</div>
+                    <div class="text-sm text-gray-600">Online Shoppers</div>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-orange-600" id="avgSpend">-</div>
+                    <div class="text-sm text-gray-600">Top Monthly Spend</div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600" id="topCity">-</div>
+                    <div class="text-sm text-gray-600">Top City</div>
+                </div>
+            </div>
+
+            <div class="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mb-6">
+                <p class="font-semibold mb-2">⚠️ Important: How to View Responses</p>
+                <p class="text-sm text-gray-700">This dashboard reads responses from browser localStorage. To see responses:</p>
+                <ol class="text-sm text-gray-700 ml-4 mt-2 list-decimal">
+                    <li>Fill the survey at: <a href="https://imroz-alt.github.io/graamkart-survey/" class="text-blue-600 underline" target="_blank">Survey Link</a></li>
+                    <li>Come back to this page to see the data</li>
+                    <li>Both pages must be opened in the SAME browser</li>
+                </ol>
+            </div>
+
+            <div class="flex gap-4 mb-6 flex-wrap">
+                <button onclick="exportCSV()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                    📥 Export CSV
+                </button>
+                <button onclick="exportJSON()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    📥 Export JSON
+                </button>
+                <button onclick="clearData()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">
+                    🗑️ Clear All Data
+                </button>
+                <button onclick="loadResponses()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                    🔄 Refresh
+                </button>
+                <a href="https://imroz-alt.github.io/graamkart-survey/" target="_blank" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+                    📝 Go to Survey
+                </a>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4">Delivery Time Preference</h3>
+                <canvas id="deliveryTimeChart"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4">Payment Method Preference</h3>
+                <canvas id="paymentChart"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4">Top Product Categories</h3>
+                <canvas id="productsChart"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4">Delivery Fee Willingness</h3>
+                <canvas id="deliveryFeeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Key Insights -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">🎯 Key Insights</h2>
+            <div id="insights" class="space-y-3">
+                <p class="text-gray-500">Fill the survey to see insights...</p>
+            </div>
+        </div>
+
+        <!-- Responses Table -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold mb-4">All Responses</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm" id="responsesTable">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-3 py-2 text-left">ID</th>
+                            <th class="px-3 py-2 text-left">Name</th>
+                            <th class="px-3 py-2 text-left">Mobile</th>
+                            <th class="px-3 py-2 text-left">City</th>
+                            <th class="px-3 py-2 text-left">State</th>
+                            <th class="px-3 py-2 text-left">Age</th>
+                            <th class="px-3 py-2 text-left">Products</th>
+                            <th class="px-3 py-2 text-left">Delivery</th>
+                            <th class="px-3 py-2 text-left">Payment</th>
+                            <th class="px-3 py-2 text-left">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="responsesBody">
+                        <tr>
+                            <td colspan="10" class="text-center py-8 text-gray-500">No responses yet. Share the survey link!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let responses = [];
+        let charts = {};
+
+        function loadResponses() {
+            responses = JSON.parse(localStorage.getItem('graamkart_responses') || '[]');
+            updateDashboard();
+            updateTable();
+            updateCharts();
+            updateInsights();
+        }
+
+        function updateDashboard() {
+            document.getElementById('totalResponses').textContent = responses.length;
+
+            if (responses.length === 0) return;
+
+            // Online shoppers percentage
+            const onlineShoppers = responses.filter(r => r.online_shopping !== 'no-never').length;
+            document.getElementById('onlineShoppers').textContent = 
+                Math.round((onlineShoppers / responses.length) * 100) + '%';
+
+            // Top city
+            const cities = {};
+            responses.forEach(r => {
+                cities[r.city] = (cities[r.city] || 0) + 1;
+            });
+            const topCity = Object.keys(cities).sort((a, b) => cities[b] - cities[a])[0];
+            document.getElementById('topCity').textContent = topCity || '-';
+
+            // Most common age group
+            const ages = {};
+            responses.forEach(r => {
+                ages[r.age] = (ages[r.age] || 0) + 1;
+            });
+            const topAge = Object.keys(ages).sort((a, b) => ages[b] - ages[a])[0];
+            document.getElementById('avgAge').textContent = topAge || '-';
+
+            // Most common spend
+            const spends = {};
+            responses.forEach(r => {
+                spends[r.monthly_spend] = (spends[r.monthly_spend] || 0) + 1;
+            });
+            const topSpend = Object.keys(spends).sort((a, b) => spends[b] - spends[a])[0];
+            document.getElementById('avgSpend').textContent = topSpend || '-';
+        }
+
+        function updateInsights() {
+            if (responses.length === 0) {
+                document.getElementById('insights').innerHTML = '<p class="text-gray-500">Fill the survey to see insights...</p>';
+                return;
+            }
+
+            const insights = [];
+
+            // COD preference
+            const codUsers = responses.filter(r => r.payment === 'cod').length;
+            const codPercent = Math.round((codUsers / responses.length) * 100);
+            if (codPercent > 50) {
+                insights.push(`✅ <strong>${codPercent}%</strong> prefer Cash on Delivery - Must support COD!`);
+            }
+
+            // Fast delivery demand
+            const fastDelivery = responses.filter(r => r.delivery_time === '10min' || r.delivery_time === '30min').length;
+            const fastPercent = Math.round((fastDelivery / responses.length) * 100);
+            if (fastPercent > 60) {
+                insights.push(`⚡ <strong>${fastPercent}%</strong> want delivery within 30 minutes - Speed is critical!`);
+            }
+
+            // Top product category
+            const products = {};
+            responses.forEach(r => {
+                const prods = Array.isArray(r.products) ? r.products : [r.products];
+                prods.forEach(p => {
+                    if (p) products[p] = (products[p] || 0) + 1;
+                });
+            });
+            const topProduct = Object.keys(products).sort((a, b) => products[b] - products[a])[0];
+            insights.push(`🛒 <strong>${topProduct}</strong> is the most demanded category`);
+
+            // Free delivery expectation
+            const freeDelivery = responses.filter(r => r.delivery_fee === 'free').length;
+            const freePercent = Math.round((freeDelivery / responses.length) * 100);
+            if (freePercent > 40) {
+                insights.push(`💰 <strong>${freePercent}%</strong> expect free delivery - Consider minimum order value`);
+            }
+
+            // High spenders
+            const highSpenders = responses.filter(r => r.monthly_spend === '5000-10000' || r.monthly_spend === '10000+').length;
+            const highPercent = Math.round((highSpenders / responses.length) * 100);
+            if (highPercent > 30) {
+                insights.push(`💎 <strong>${highPercent}%</strong> spend ₹5K+ monthly - Good market potential!`);
+            }
+
+            document.getElementById('insights').innerHTML = insights.map(i => 
+                `<div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">${i}</div>`
+            ).join('');
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('responsesBody');
+            
+            if (responses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-gray-500">No responses yet. <a href="https://imroz-alt.github.io/graamkart-survey/" class="text-blue-600 underline">Fill the survey</a> to see data here!</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = responses.map((r, i) => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-3 py-2 text-xs">${r.response_id || 'GK' + i}</td>
+                    <td class="px-3 py-2">${r.name}</td>
+                    <td class="px-3 py-2">${r.mobile}</td>
+                    <td class="px-3 py-2">${r.city}</td>
+                    <td class="px-3 py-2">${r.state}</td>
+                    <td class="px-3 py-2">${r.age}</td>
+                    <td class="px-3 py-2 text-xs">${Array.isArray(r.products) ? r.products.join(', ') : r.products || '-'}</td>
+                    <td class="px-3 py-2">${r.delivery_time}</td>
+                    <td class="px-3 py-2">${r.payment}</td>
+                    <td class="px-3 py-2 text-xs">${new Date(r.timestamp).toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'})}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateCharts() {
+            if (responses.length === 0) return;
+
+            // Delivery Time Chart
+            const deliveryTimes = {};
+            responses.forEach(r => {
+                deliveryTimes[r.delivery_time] = (deliveryTimes[r.delivery_time] || 0) + 1;
+            });
+
+            if (charts.deliveryTime) charts.deliveryTime.destroy();
+            charts.deliveryTime = new Chart(document.getElementById('deliveryTimeChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(deliveryTimes),
+                    datasets: [{
+                        label: 'Responses',
+                        data: Object.values(deliveryTimes),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+
+            // Payment Chart
+            const payments = {};
+            responses.forEach(r => {
+                payments[r.payment] = (payments[r.payment] || 0) + 1;
+            });
+
+            if (charts.payment) charts.payment.destroy();
+            charts.payment = new Chart(document.getElementById('paymentChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(payments),
+                    datasets: [{
+                        data: Object.values(payments),
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+
+            // Products Chart
+            const products = {};
+            responses.forEach(r => {
+                const prods = Array.isArray(r.products) ? r.products : [r.products];
+                prods.forEach(p => {
+                    if (p) products[p] = (products[p] || 0) + 1;
+                });
+            });
+
+            if (charts.products) charts.products.destroy();
+            charts.products = new Chart(document.getElementById('productsChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(products),
+                    datasets: [{
+                        label: 'Selections',
+                        data: Object.values(products),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    indexAxis: 'y'
+                }
+            });
+
+            // Delivery Fee Chart
+            const fees = {};
+            responses.forEach(r => {
+                fees[r.delivery_fee] = (fees[r.delivery_fee] || 0) + 1;
+            });
+
+            if (charts.deliveryFee) charts.deliveryFee.destroy();
+            charts.deliveryFee = new Chart(document.getElementById('deliveryFeeChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(fees),
+                    datasets: [{
+                        data: Object.values(fees),
+                        backgroundColor: ['#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+        }
+
+        function exportCSV() {
+            if (responses.length === 0) {
+                alert('No data to export! Fill the survey first.');
+                return;
+            }
+
+            const headers = ['ID', 'Name', 'Mobile', 'City', 'State', 'Age', 'Online Shopping', 'Products', 'Delivery Fee', 'Delivery Time', 'Payment', 'Monthly Spend', 'Feedback', 'Timestamp'];
+            const rows = responses.map(r => [
+                r.response_id,
+                r.name,
+                r.mobile,
+                r.city,
+                r.state,
+                r.age,
+                r.online_shopping,
+                Array.isArray(r.products) ? r.products.join('; ') : r.products,
+                r.delivery_fee,
+                r.delivery_time,
+                r.payment,
+                r.monthly_spend,
+                r.feedback || '',
+                r.timestamp
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `graamkart_responses_${Date.now()}.csv`;
+            a.click();
+        }
+
+        function exportJSON() {
+            if (responses.length === 0) {
+                alert('No data to export! Fill the survey first.');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(responses, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `graamkart_responses_${Date.now()}.json`;
+            a.click();
+        }
+
+        function clearData() {
+            if (confirm('Are you sure you want to delete all responses? This cannot be undone!')) {
+                localStorage.removeItem('graamkart_responses');
+                loadResponses();
+                alert('All data cleared!');
+            }
+        }
+
+        // Load on page load
+        window.addEventListener('load', loadResponses);
+
+        // Auto-refresh every 5 seconds
+        setInterval(loadResponses, 5000);
+    </script>
+</body>
+</html>
